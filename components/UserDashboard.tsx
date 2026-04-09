@@ -13,23 +13,18 @@ import { ReturnPage } from './user/ReturnPage';
 import { OnboardingTutorial } from './user/OnboardingTutorial';
 import { Button } from './ui/button';
 import { 
-  Home, 
-  Search, 
-  User, 
-  ShoppingCart, 
-  Heart, 
-  FileText, 
-  Upload, 
-  Settings,
-  Sparkles,
-  Package
+  Home, Search, User, ShoppingCart, Heart, FileText, Upload, Settings, Sparkles, Package
 } from 'lucide-react';
 import { getTranslation, type Language } from '../utils/translations';
+import { toast } from 'sonner@2.0.3'; // <-- Tambahkan import toast
 
+// Tambahkan prop isGuest dan onNavigateToAuth
 type UserDashboardProps = {
   onLogout: () => void;
   userData: UserData;
   updateUserData: (data: Partial<UserData>) => void;
+  isGuest?: boolean;
+  onNavigateToAuth?: () => void;
 };
 
 export type CartItem = {
@@ -41,14 +36,13 @@ export type CartItem = {
   image: string;
 };
 
-export function UserDashboard({ onLogout, userData, updateUserData }: UserDashboardProps) {
+export function UserDashboard({ onLogout, userData, updateUserData, isGuest, onNavigateToAuth }: UserDashboardProps) {
   const [activePage, setActivePage] = useState<string>('home');
-  // Only show onboarding for new users who haven't seen the tutorial
-  const [showOnboarding, setShowOnboarding] = useState(!userData.hasSeenTutorial);
+  // Matikan onboarding jika masuk sebagai tamu
+  const [showOnboarding, setShowOnboarding] = useState(!userData.hasSeenTutorial && !isGuest);
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [favorites, setFavorites] = useState<string[]>([]);
 
-  // Theme colors configuration
   const themeColors = useMemo(() => ({
     green: { primary: '#16a34a', light: '#22c55e', secondary: '#4ade80' },
     orange: { primary: '#ea580c', light: '#f97316', secondary: '#fb923c' },
@@ -59,13 +53,17 @@ export function UserDashboard({ onLogout, userData, updateUserData }: UserDashbo
 
   const currentTheme = themeColors[userData.themeColor as keyof typeof themeColors] || themeColors.green;
 
+  // Cegah interaksi tamu pada fitur yang butuh akun
   const addToCart = (item: Omit<CartItem, 'quantity'>) => {
+    if (isGuest && onNavigateToAuth) {
+      toast('Silakan masuk/daftar untuk berbelanja', { icon: '🔒' });
+      onNavigateToAuth();
+      return;
+    }
     setCartItems(prev => {
       const existing = prev.find(i => i.id === item.id);
       if (existing) {
-        return prev.map(i => 
-          i.id === item.id ? { ...i, quantity: i.quantity + 1 } : i
-        );
+        return prev.map(i => i.id === item.id ? { ...i, quantity: i.quantity + 1 } : i);
       }
       return [...prev, { ...item, quantity: 1 }];
     });
@@ -75,38 +73,32 @@ export function UserDashboard({ onLogout, userData, updateUserData }: UserDashbo
     if (quantity <= 0) {
       setCartItems(prev => prev.filter(item => item.id !== id));
     } else {
-      setCartItems(prev => prev.map(item => 
-        item.id === id ? { ...item, quantity } : item
-      ));
+      setCartItems(prev => prev.map(item => item.id === id ? { ...item, quantity } : item));
     }
   };
 
-  const clearCart = () => {
-    setCartItems([]);
-  };
+  const clearCart = () => setCartItems([]);
 
   const toggleFavorite = (productId: string) => {
-    setFavorites(prev => {
-      if (prev.includes(productId)) {
-        return prev.filter(id => id !== productId);
-      }
-      return [...prev, productId];
-    });
+    if (isGuest && onNavigateToAuth) {
+      toast('Silakan masuk/daftar untuk memfavoritkan karya', { icon: '🔒' });
+      onNavigateToAuth();
+      return;
+    }
+    setFavorites(prev => prev.includes(productId) ? prev.filter(id => id !== productId) : [...prev, productId]);
   };
 
   const handleOnboardingComplete = () => {
     setShowOnboarding(false);
-    // Mark tutorial as seen so it won't show again
     updateUserData({ hasSeenTutorial: true });
   };
 
-  // Get translations based on user's language preference
   const t = getTranslation((userData.language as Language) || 'id');
 
-  const navItems = [
+  const allNavItems = [
     { id: 'home', label: t.home, icon: Home },
     { id: 'search', label: t.search, icon: Search },
-    { id: 'profile', label: t.profile, icon: User },
+    { id: 'profile', label: isGuest ? 'Masuk / Daftar' : t.profile, icon: User }, // Label diubah untuk tamu
     { id: 'orders', label: t.orders, icon: Package },
     { id: 'cart', label: t.cart, icon: ShoppingCart },
     { id: 'donation', label: t.donation, icon: Heart },
@@ -115,22 +107,26 @@ export function UserDashboard({ onLogout, userData, updateUserData }: UserDashbo
     { id: 'settings', label: t.settings, icon: Settings },
   ];
 
+  // Filter: Jika guest (tamu), HANYA tampilkan home, search, dan profile
+  const navItems = isGuest 
+    ? allNavItems.filter(item => ['home', 'search', 'profile'].includes(item.id))
+    : allNavItems;
+
+  const handleMenuClick = (id: string) => {
+    if (isGuest && id === 'profile' && onNavigateToAuth) {
+      onNavigateToAuth(); // Arahkan ke halaman login jika menu profil ditekan
+    } else {
+      setActivePage(id);
+    }
+  };
+
   return (
     <div className="min-h-screen">
       {showOnboarding ? (
-        <OnboardingTutorial 
-          username={userData.username} 
-          onComplete={handleOnboardingComplete}
-        />
+        <OnboardingTutorial username={userData.username} onComplete={handleOnboardingComplete} />
       ) : (
         <>
-          {/* Top Navigation Bar */}
-          <div 
-            className="text-white shadow-lg sticky top-0 z-50"
-            style={{
-              backgroundImage: `linear-gradient(to right, ${currentTheme.light}, ${currentTheme.secondary})`
-            }}
-          >
+          <div className="text-white shadow-lg sticky top-0 z-50" style={{ backgroundImage: `linear-gradient(to right, ${currentTheme.light}, ${currentTheme.secondary})` }}>
             <div className="container mx-auto px-4">
               <div className="flex items-center justify-between py-4">
                 <div className="flex items-center gap-3">
@@ -149,15 +145,11 @@ export function UserDashboard({ onLogout, userData, updateUserData }: UserDashbo
                     return (
                       <Button
                         key={item.id}
-                        onClick={() => setActivePage(item.id)}
-                        variant={activePage === item.id ? 'secondary' : 'ghost'}
+                        onClick={() => handleMenuClick(item.id)}
+                        variant={activePage === item.id && !isGuest ? 'secondary' : 'ghost'}
                         size="sm"
-                        className={`rounded-xl ${
-                          activePage === item.id 
-                            ? 'bg-white hover:bg-white/90' 
-                            : 'text-white hover:bg-white/20'
-                        }`}
-                        style={activePage === item.id ? { color: currentTheme.primary } : {}}
+                        className={`rounded-xl ${activePage === item.id && (!isGuest || item.id !== 'profile') ? 'bg-white hover:bg-white/90' : 'text-white hover:bg-white/20'}`}
+                        style={activePage === item.id && (!isGuest || item.id !== 'profile') ? { color: currentTheme.primary } : {}}
                       >
                         <Icon className="w-4 h-4 mr-2" />
                         {item.label}
@@ -172,22 +164,17 @@ export function UserDashboard({ onLogout, userData, updateUserData }: UserDashbo
                 </div>
               </div>
 
-              {/* Mobile Navigation */}
               <div className="flex md:hidden overflow-x-auto pb-2 gap-2">
                 {navItems.map(item => {
                   const Icon = item.icon;
                   return (
                     <Button
                       key={item.id}
-                      onClick={() => setActivePage(item.id)}
-                      variant={activePage === item.id ? 'secondary' : 'ghost'}
+                      onClick={() => handleMenuClick(item.id)}
+                      variant={activePage === item.id && !isGuest ? 'secondary' : 'ghost'}
                       size="sm"
-                      className={`rounded-xl flex-shrink-0 ${
-                        activePage === item.id 
-                          ? 'bg-white' 
-                          : 'text-white hover:bg-white/20'
-                      }`}
-                      style={activePage === item.id ? { color: currentTheme.primary } : {}}
+                      className={`rounded-xl flex-shrink-0 ${activePage === item.id && (!isGuest || item.id !== 'profile') ? 'bg-white' : 'text-white hover:bg-white/20'}`}
+                      style={activePage === item.id && (!isGuest || item.id !== 'profile') ? { color: currentTheme.primary } : {}}
                     >
                       <Icon className="w-4 h-4 mr-1" />
                       {item.label}
@@ -203,31 +190,32 @@ export function UserDashboard({ onLogout, userData, updateUserData }: UserDashbo
             </div>
           </div>
 
-          {/* Page Content */}
           <div className="min-h-screen">
-            {activePage === 'home' && <HomePage userData={userData} addToCart={addToCart} favorites={favorites} toggleFavorite={toggleFavorite} navigateToUpload={() => setActivePage('upload')} navigateToOrders={() => setActivePage('orders')} />}
-            {activePage === 'search' && <SearchPage addToCart={addToCart} favorites={favorites} toggleFavorite={toggleFavorite} userData={userData} />}
-            {activePage === 'profile' && <ProfilePage userData={userData} updateUserData={updateUserData} />}
-            {activePage === 'orders' && <OrdersPage userData={userData} onNavigateToReturn={(orderId) => setActivePage('return')} />}
-            {activePage === 'cart' && (
-              <CartPage 
-                cartItems={cartItems} 
-                updateQuantity={updateCartItemQuantity}
-                clearCart={clearCart}
-                onNavigateToSearch={() => setActivePage('search')}
-                userData={userData}
+            {activePage === 'home' && (
+              <HomePage 
+                userData={userData} 
+                addToCart={addToCart} 
+                favorites={favorites} 
+                toggleFavorite={toggleFavorite} 
+                navigateToUpload={() => {
+                  if (isGuest && onNavigateToAuth) onNavigateToAuth();
+                  else setActivePage('upload');
+                }} 
+                navigateToOrders={() => {
+                  if (isGuest && onNavigateToAuth) onNavigateToAuth();
+                  else setActivePage('orders');
+                }} 
+                isGuest={isGuest} // <-- Tambahkan baris ini
               />
             )}
+            {activePage === 'search' && <SearchPage addToCart={addToCart} favorites={favorites} toggleFavorite={toggleFavorite} userData={userData} />}
+            {activePage === 'profile' && !isGuest && <ProfilePage userData={userData} updateUserData={updateUserData} />}
+            {activePage === 'orders' && <OrdersPage userData={userData} onNavigateToReturn={() => setActivePage('return')} />}
+            {activePage === 'cart' && <CartPage cartItems={cartItems} updateQuantity={updateCartItemQuantity} clearCart={clearCart} onNavigateToSearch={() => setActivePage('search')} userData={userData} />}
             {activePage === 'donation' && <DonationPage userData={userData} />}
             {activePage === 'license' && <LicensePage userData={userData} />}
             {activePage === 'upload' && <UploadPage userData={userData} />}
-            {activePage === 'settings' && (
-              <SettingsPage 
-                userData={userData} 
-                updateUserData={updateUserData}
-                onLogout={onLogout}
-              />
-            )}
+            {activePage === 'settings' && <SettingsPage userData={userData} updateUserData={updateUserData} onLogout={onLogout} />}
             {activePage === 'return' && <ReturnPage userData={userData} />}
           </div>
         </>

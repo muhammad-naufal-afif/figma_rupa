@@ -1,4 +1,4 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { ImageWithFallback } from '../figma/ImageWithFallback';
@@ -17,6 +17,7 @@ import {
 import { toast } from 'sonner@2.0.3';
 import { getTranslation, type Language } from '../../utils/translations';
 
+// 1. Tambahkan properti isGuest ke tipe Props
 type HomePageProps = {
   userData: UserData;
   addToCart: (item: Omit<CartItem, 'quantity'>) => void;
@@ -24,9 +25,10 @@ type HomePageProps = {
   toggleFavorite: (productId: string) => void;
   navigateToUpload: () => void;
   navigateToOrders: () => void;
+  isGuest?: boolean;
 };
 
-export function HomePage({ userData, addToCart, favorites, toggleFavorite, navigateToUpload, navigateToOrders }: HomePageProps) {
+export function HomePage({ userData, addToCart, favorites, toggleFavorite, navigateToUpload, navigateToOrders, isGuest }: HomePageProps) {
   const t = getTranslation((userData.language as Language) || 'id');
   
   const themeColors: Record<string, { primary: string; light: string; secondary: string }> = {
@@ -38,6 +40,7 @@ export function HomePage({ userData, addToCart, favorites, toggleFavorite, navig
   };
   
   const currentTheme = themeColors[userData.themeColor || 'green'] || themeColors.green;
+  
   const featuredWorks = [
     {
       id: '1',
@@ -108,13 +111,16 @@ export function HomePage({ userData, addToCart, favorites, toggleFavorite, navig
                 </p>
               </div>
               <div className="flex gap-3">
-                <div className="text-center bg-white/20 backdrop-blur rounded-xl px-4 py-2">
-                  <div className="flex items-center gap-2">
-                    <Award className="w-5 h-5" />
-                    <span>Points</span>
+                {/* 2. Sembunyikan tampilan Points di banner jika pengguna adalah tamu */}
+                {!isGuest && (
+                  <div className="text-center bg-white/20 backdrop-blur rounded-xl px-4 py-2">
+                    <div className="flex items-center gap-2">
+                      <Award className="w-5 h-5" />
+                      <span>Points</span>
+                    </div>
+                    <p className="text-2xl mt-1">850</p>
                   </div>
-                  <p className="text-2xl mt-1">850</p>
-                </div>
+                )}
               </div>
             </div>
           </CardContent>
@@ -154,11 +160,6 @@ export function HomePage({ userData, addToCart, favorites, toggleFavorite, navig
                     onClick={(e) => {
                       e.preventDefault();
                       toggleFavorite(work.id);
-                      toast.success(
-                        favorites.includes(work.id) 
-                          ? `${work.name} dihapus dari favorit` 
-                          : `${work.name} ditambahkan ke favorit! ❤️`
-                      );
                     }}
                     className="absolute top-3 left-3 w-8 h-8 bg-white/90 rounded-full flex items-center justify-center hover:bg-white transition-colors"
                   >
@@ -239,41 +240,46 @@ export function HomePage({ userData, addToCart, favorites, toggleFavorite, navig
             </CardContent>
           </Card>
 
-          <Card className="rounded-2xl shadow-lg border-0 hover:shadow-xl transition-shadow">
-            <CardHeader>
-              <CardTitle className="flex items-center text-blue-800">
-                <Package className="w-5 h-5 mr-2" />
-                Pesanan Anda
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-gray-600">
-                Anda memiliki <strong>4 pesanan</strong> aktif
-              </p>
-              <Button 
-                onClick={navigateToOrders}
-                variant="link" 
-                className="p-0 h-auto text-blue-600 mt-2"
-              >
-                Lihat Pesanan →
-              </Button>
-            </CardContent>
-          </Card>
+          {/* 3. Sembunyikan Pesanan Anda dan Reward Points jika pengguna adalah tamu */}
+          {!isGuest && (
+            <>
+              <Card className="rounded-2xl shadow-lg border-0 hover:shadow-xl transition-shadow">
+                <CardHeader>
+                  <CardTitle className="flex items-center text-blue-800">
+                    <Package className="w-5 h-5 mr-2" />
+                    Pesanan Anda
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-gray-600">
+                    Anda memiliki <strong>4 pesanan</strong> aktif
+                  </p>
+                  <Button 
+                    onClick={navigateToOrders}
+                    variant="link" 
+                    className="p-0 h-auto text-blue-600 mt-2"
+                  >
+                    Lihat Pesanan →
+                  </Button>
+                </CardContent>
+              </Card>
 
-          <Card className="rounded-2xl shadow-lg border-0 hover:shadow-xl transition-shadow">
-            <CardHeader>
-              <CardTitle className="flex items-center text-purple-800">
-                <Award className="w-5 h-5 mr-2" />
-                Reward Points
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-gray-600">
-                Kumpulkan poin dari setiap pembelian untuk mendapat diskon!
-              </p>
-              <p className="text-purple-700 mt-2">Total: 850 poin</p>
-            </CardContent>
-          </Card>
+              <Card className="rounded-2xl shadow-lg border-0 hover:shadow-xl transition-shadow">
+                <CardHeader>
+                  <CardTitle className="flex items-center text-purple-800">
+                    <Award className="w-5 h-5 mr-2" />
+                    Reward Points
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-gray-600">
+                    Kumpulkan poin dari setiap pembelian untuk mendapat diskon!
+                  </p>
+                  <p className="text-purple-700 mt-2">Total: 850 poin</p>
+                </CardContent>
+              </Card>
+            </>
+          )}
         </div>
       </div>
     </div>

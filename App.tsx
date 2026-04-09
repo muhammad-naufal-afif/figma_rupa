@@ -3,6 +3,8 @@ import { SignUpPage } from './components/SignUpPage';
 import { LoginPage } from './components/LoginPage';
 import { AdminDashboard } from './components/AdminDashboard';
 import { UserDashboard } from './components/UserDashboard';
+// Catatan: AdminLoginPage kita nonaktifkan dulu karena kita fokus ke Pelanggan/User
+// import { AdminLoginPage } from './components/AdminLoginPage'; 
 import { Toaster } from './components/ui/sonner';
 
 export type UserData = {
@@ -27,30 +29,41 @@ export type AuthState = {
 };
 
 export default function App() {
-  const [currentPage, setCurrentPage] = useState<'login' | 'signup' | 'admin' | 'user'>('login');
+  // 1. Memulai aplikasi langsung di mode 'guest' (Tamu)
+  const [currentPage, setCurrentPage] = useState<'login' | 'signup' | 'admin' | 'user' | 'guest'>('guest');
+  
   const [authState, setAuthState] = useState<AuthState>({
     isAuthenticated: false,
     userType: null,
     userData: null,
   });
 
+  // 2. Data dummy untuk tamu
+  const guestData: UserData = {
+    username: 'Tamu',
+    email: '',
+    hasSeenTutorial: true, 
+    themeColor: 'green',
+    language: 'id',
+  };
+
   const handleSignUp = (data: UserData) => {
-    // Mark as new user who hasn't seen tutorial yet
     setAuthState({
       isAuthenticated: true,
       userType: 'user',
       userData: { ...data, hasSeenTutorial: false },
     });
+    // Berhasil daftar -> Langsung masuk ke dashboard user
     setCurrentPage('user');
   };
 
   const handleLogin = (userType: 'admin' | 'user', userData: UserData) => {
-    // For login, mark tutorial as already seen (returning user)
     setAuthState({
       isAuthenticated: true,
       userType,
       userData: { ...userData, hasSeenTutorial: true },
     });
+    // Berhasil login -> Langsung masuk ke dashboard user/admin
     setCurrentPage(userType);
   };
 
@@ -60,7 +73,8 @@ export default function App() {
       userType: null,
       userData: null,
     });
-    setCurrentPage('login');
+    // Logout -> Kembali menjadi Tamu
+    setCurrentPage('guest');
   };
 
   const updateUserData = (newData: Partial<UserData>) => {
@@ -72,6 +86,19 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50 via-green-50 to-orange-50">
+      
+      {/* --- HALAMAN 1: MODE TAMU --- */}
+      {currentPage === 'guest' && (
+        <UserDashboard 
+          onLogout={handleLogout}
+          userData={guestData}
+          updateUserData={() => {}}
+          isGuest={true}
+          onNavigateToAuth={() => setCurrentPage('login')}
+        />
+      )}
+
+      {/* --- HALAMAN 2: DAFTAR --- */}
       {currentPage === 'signup' && (
         <SignUpPage 
           onSignUp={handleSignUp}
@@ -79,13 +106,16 @@ export default function App() {
         />
       )}
       
+      {/* --- HALAMAN 3: LOGIN PELANGGAN --- */}
       {currentPage === 'login' && (
         <LoginPage 
           onLogin={handleLogin}
           onGoToSignUp={() => setCurrentPage('signup')}
+          onBackToGuest={() => setCurrentPage('guest')} // <-- Menghubungkan tombol kembali
         />
       )}
       
+      {/* --- HALAMAN 4: DASHBOARD ADMIN --- */}
       {currentPage === 'admin' && authState.userData && (
         <AdminDashboard 
           onLogout={handleLogout}
@@ -93,6 +123,7 @@ export default function App() {
         />
       )}
       
+      {/* --- HALAMAN 5: DASHBOARD USER (PELANGGAN) --- */}
       {currentPage === 'user' && authState.userData && (
         <UserDashboard 
           onLogout={handleLogout}

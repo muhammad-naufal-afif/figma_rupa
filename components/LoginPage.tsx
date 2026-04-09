@@ -3,272 +3,145 @@ import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
-import { Sparkles, Lock, User, Shield, Mail, Phone } from 'lucide-react';
+import { Sparkles, Lock, User, Mail, Phone, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner@2.0.3';
 import type { UserData } from '../App';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from './ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from './ui/dialog';
+
+const GoogleIcon = () => (
+  <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
+    <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
+    <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
+    <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
+    <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
+  </svg>
+);
 
 type LoginPageProps = {
-  onLogin: (userType: 'admin' | 'user', userData: UserData) => void;
+  onLogin: (userType: 'user', userData: UserData) => void;
   onGoToSignUp: () => void;
+  onBackToGuest: () => void; // <-- Prop baru untuk kembali ke mode tamu
 };
 
-export function LoginPage({ onLogin, onGoToSignUp }: LoginPageProps) {
-  const [adminForm, setAdminForm] = useState({ adminId: '', password: '' });
+export function LoginPage({ onLogin, onGoToSignUp, onBackToGuest }: LoginPageProps) {
   const [userForm, setUserForm] = useState({ username: '', password: '' });
   const [showForgotPassword, setShowForgotPassword] = useState(false);
-  const [forgotPasswordForm, setForgotPasswordForm] = useState({ email: '', phone: '' });
-
-  const handleAdminLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!adminForm.adminId || !adminForm.password) {
-      toast.error('Mohon lengkapi semua field!');
-      return;
-    }
-
-    toast.success('Selamat datang kembali, Penjaga RUPA 🌱! Siap memastikan karya anak bangsa terus bersinar hari ini?', {
-      duration: 4000,
-    });
-
-    setTimeout(() => {
-      onLogin('admin', {
-        username: adminForm.adminId,
-        email: `${adminForm.adminId}@rupa.admin`,
-        fullName: 'Admin RUPA',
-      });
-    }, 1000);
-  };
 
   const handleUserLogin = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!userForm.username || !userForm.password) {
-      toast.error('Mohon lengkapi semua field!');
-      return;
-    }
+    // Karena ini FRONTEND DUMMY, kita abaikan validasi kosong.
+    // Jika user tidak mengetik apa-apa, kita beri nama default "PelangganBaru"
+    const finalUsername = userForm.username || 'PelangganBaru';
 
-    toast.success(`Selamat datang kembali, ${userForm.username}! Apa yang mau kalian lihat hari ini?`, {
-      duration: 4000,
+    toast.success(`Selamat datang kembali, ${finalUsername}!`, { duration: 2000 });
+
+    // Langsung lempar ke Dashboard (App.tsx) tanpa jeda yang bikin bingung
+    onLogin('user', {
+      username: finalUsername,
+      email: `${finalUsername.toLowerCase()}@dummy.com`,
+      fullName: finalUsername,
+      themeColor: 'green',
+      language: 'id',
     });
-
-    setTimeout(() => {
-      onLogin('user', {
-        username: userForm.username,
-        email: `${userForm.username}@example.com`,
-        fullName: userForm.username,
-      });
-    }, 1000);
   };
 
-  const handleForgotPassword = () => {
-    if (!forgotPasswordForm.email || !forgotPasswordForm.phone) {
-      toast.error('Mohon lengkapi email dan nomor telepon!');
-      return;
-    }
-
-    toast.success('Kode OTP telah dikirim ke email dan nomor telepon Anda!');
-    setShowForgotPassword(false);
-    setForgotPasswordForm({ email: '', phone: '' });
+  const handleGoogleLogin = () => {
+    toast.success('Berhasil login dengan Google Dummy!', { duration: 2000 });
+    onLogin('user', {
+      username: 'UserGoogle',
+      email: 'user@gmail.com',
+      fullName: 'Pengguna Google',
+      themeColor: 'blue',
+      language: 'id',
+    });
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
-      <Card className="w-full max-w-lg shadow-2xl border-0 bg-white/80 backdrop-blur-sm">
-        <CardHeader className="text-center space-y-2">
+      <Card className="w-full max-w-md shadow-2xl border-0 bg-white/80 backdrop-blur-sm relative">
+        
+        {/* Tombol Kembali ke Beranda Tamu */}
+        <button 
+          onClick={onBackToGuest}
+          className="absolute top-4 left-4 text-gray-400 hover:text-green-600 transition-colors flex items-center gap-1 text-sm"
+        >
+          <ArrowLeft className="w-4 h-4" /> Kembali
+        </button>
+
+        <CardHeader className="text-center space-y-2 mt-4">
           <div className="flex justify-center mb-4">
             <div className="w-20 h-20 rounded-full bg-gradient-to-br from-green-400 to-orange-400 flex items-center justify-center shadow-lg">
               <Sparkles className="w-10 h-10 text-white" />
             </div>
           </div>
-          <CardTitle className="text-green-800">Selamat Datang di RUPA</CardTitle>
+          <CardTitle className="text-green-800 text-2xl">Masuk ke RUPA</CardTitle>
           <CardDescription className="text-orange-700">
-            Ruang Unggulan Para Anak Bangsa
+            Lanjutkan perjalananmu mencari karya anak bangsa
           </CardDescription>
-          <p className="text-sm text-gray-600">
-            Pilih jenis akun untuk masuk
-          </p>
         </CardHeader>
 
         <CardContent>
-          <Tabs defaultValue="user" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 mb-6 rounded-xl bg-gray-100">
-              <TabsTrigger value="user" className="rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-green-500 data-[state=active]:to-orange-500 data-[state=active]:text-white">
-                <User className="w-4 h-4 mr-2" />
-                Member 🧑‍🎨
-              </TabsTrigger>
-              <TabsTrigger value="admin" className="rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-green-500 data-[state=active]:to-orange-500 data-[state=active]:text-white">
-                <Shield className="w-4 h-4 mr-2" />
-                Admin 👩‍💼
-              </TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="user" className="space-y-4">
-              <form onSubmit={handleUserLogin} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="user-username" className="text-gray-700">Username</Label>
-                  <div className="relative">
-                    <User className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
-                    <Input
-                      id="user-username"
-                      type="text"
-                      placeholder="Masukkan username"
-                      className="pl-10 rounded-xl border-gray-200 focus:border-green-400 focus:ring-green-400"
-                      value={userForm.username}
-                      onChange={(e) => setUserForm({ ...userForm, username: e.target.value })}
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="user-password" className="text-gray-700">Password</Label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
-                    <Input
-                      id="user-password"
-                      type="password"
-                      placeholder="Masukkan password"
-                      className="pl-10 rounded-xl border-gray-200 focus:border-green-400 focus:ring-green-400"
-                      value={userForm.password}
-                      onChange={(e) => setUserForm({ ...userForm, password: e.target.value })}
-                    />
-                  </div>
-                </div>
-
-                <div className="flex justify-end">
-                  <button
-                    type="button"
-                    onClick={() => setShowForgotPassword(true)}
-                    className="text-sm text-orange-600 hover:text-orange-700 hover:underline"
-                  >
-                    Lupa Password?
-                  </button>
-                </div>
-
-                <Button 
-                  type="submit" 
-                  className="w-full rounded-xl bg-gradient-to-r from-green-500 to-orange-500 hover:from-green-600 hover:to-orange-600 text-white shadow-lg"
-                >
-                  Masuk sebagai Member
-                </Button>
-              </form>
-
-              <div className="text-center pt-2">
-                <p className="text-sm text-gray-600">
-                  Belum punya akun?{' '}
-                  <button
-                    onClick={onGoToSignUp}
-                    className="text-green-600 hover:text-green-700 hover:underline"
-                  >
-                    Daftar sekarang
-                  </button>
-                </p>
+          <form onSubmit={handleUserLogin} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="user-username" className="text-gray-700">Username</Label>
+              <div className="relative">
+                <User className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
+                <Input
+                  id="user-username"
+                  type="text"
+                  placeholder="Masukkan Username"
+                  className="pl-10 rounded-xl border-gray-200"
+                  value={userForm.username}
+                  onChange={(e) => setUserForm({ ...userForm, username: e.target.value })}
+                />
               </div>
-            </TabsContent>
+            </div>
 
-            <TabsContent value="admin" className="space-y-4">
-              <form onSubmit={handleAdminLogin} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="admin-id" className="text-gray-700">Admin ID</Label>
-                  <div className="relative">
-                    <Shield className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
-                    <Input
-                      id="admin-id"
-                      type="text"
-                      placeholder="Masukkan Admin ID"
-                      className="pl-10 rounded-xl border-gray-200 focus:border-green-400 focus:ring-green-400"
-                      value={adminForm.adminId}
-                      onChange={(e) => setAdminForm({ ...adminForm, adminId: e.target.value })}
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="admin-password" className="text-gray-700">Password</Label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
-                    <Input
-                      id="admin-password"
-                      type="password"
-                      placeholder="Masukkan password"
-                      className="pl-10 rounded-xl border-gray-200 focus:border-green-400 focus:ring-green-400"
-                      value={adminForm.password}
-                      onChange={(e) => setAdminForm({ ...adminForm, password: e.target.value })}
-                    />
-                  </div>
-                </div>
-
-                <Button 
-                  type="submit" 
-                  className="w-full rounded-xl bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white shadow-lg"
-                >
-                  Masuk sebagai Admin
-                </Button>
-              </form>
-
-              <div className="bg-green-50 border border-green-200 rounded-xl p-4 mt-4">
-                <p className="text-sm text-green-800 text-center">
-                  🔒 Area khusus untuk administrator RUPA
-                </p>
+            <div className="space-y-2">
+              <Label htmlFor="user-password" className="text-gray-700">Password</Label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
+                <Input
+                  id="user-password"
+                  type="password"
+                  placeholder="Masukkan Password"
+                  className="pl-10 rounded-xl border-gray-200"
+                  value={userForm.password}
+                  onChange={(e) => setUserForm({ ...userForm, password: e.target.value })}
+                />
               </div>
-            </TabsContent>
-          </Tabs>
+            </div>
+
+            <Button type="submit" className="w-full rounded-xl bg-gradient-to-r from-green-500 to-orange-500 hover:from-green-600 hover:to-orange-600 text-white shadow-lg">
+              Masuk
+            </Button>
+          </form>
+
+          <div className="relative my-6">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t border-gray-300" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-white/80 px-2 text-gray-500">atau lanjutkan dengan</span>
+            </div>
+          </div>
+
+          <Button type="button" variant="outline" onClick={handleGoogleLogin} className="w-full rounded-xl border-gray-300 hover:bg-gray-50 text-gray-700">
+            <GoogleIcon />
+            Google
+          </Button>
+
+          <div className="text-center pt-6">
+            <p className="text-sm text-gray-600">
+              Belum punya akun?{' '}
+              <button onClick={onGoToSignUp} className="text-green-600 font-semibold hover:text-green-700 hover:underline">
+                Daftar sekarang
+              </button>
+            </p>
+          </div>
         </CardContent>
       </Card>
-
-      <Dialog open={showForgotPassword} onOpenChange={setShowForgotPassword}>
-        <DialogContent className="rounded-2xl">
-          <DialogHeader>
-            <DialogTitle className="text-green-800">Lupa Password</DialogTitle>
-            <DialogDescription>
-              Masukkan email dan nomor telepon untuk menerima kode OTP
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 pt-4">
-            <div className="space-y-2">
-              <Label htmlFor="forgot-email">Email</Label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
-                <Input
-                  id="forgot-email"
-                  type="email"
-                  placeholder="email@example.com"
-                  className="pl-10 rounded-xl"
-                  value={forgotPasswordForm.email}
-                  onChange={(e) => setForgotPasswordForm({ ...forgotPasswordForm, email: e.target.value })}
-                />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="forgot-phone">Nomor Telepon</Label>
-              <div className="relative">
-                <Phone className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
-                <Input
-                  id="forgot-phone"
-                  type="tel"
-                  placeholder="08xxxxxxxxxx"
-                  className="pl-10 rounded-xl"
-                  value={forgotPasswordForm.phone}
-                  onChange={(e) => setForgotPasswordForm({ ...forgotPasswordForm, phone: e.target.value })}
-                />
-              </div>
-            </div>
-            <Button 
-              onClick={handleForgotPassword}
-              className="w-full rounded-xl bg-gradient-to-r from-green-500 to-orange-500 hover:from-green-600 hover:to-orange-600"
-            >
-              Kirim Kode OTP
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
